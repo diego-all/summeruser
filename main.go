@@ -52,6 +52,8 @@ func EjecutoLambda(ctx context.Context, event events.CognitoEventUserPoolsPostCo
 		return event, err
 	}
 
+	return event, err
+
 }
 
 func Validoparametros() bool {
