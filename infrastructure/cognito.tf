@@ -1,4 +1,6 @@
-# 1. User Pool (SummerUserPool)
+# ========================================================================
+# 1. USER POOL DE COGNITO (SummerUserPool)
+# ========================================================================
 resource "aws_cognito_user_pool" "pool" {
   name                     = "summer"
   auto_verified_attributes = ["email"]
@@ -56,13 +58,17 @@ resource "aws_lambda_permission" "allow_cognito_post_confirmation" {
   source_arn    = aws_cognito_user_pool.pool.arn
 }
 
-# 2. Dominio de Cognito (SummerDomain)
+# ========================================================================
+# 2. DOMINIO DE COGNITO (SummerDomain)
+# ========================================================================
 resource "aws_cognito_user_pool_domain" "main" {
   domain       = "summer-app-dev-unique"
   user_pool_id = aws_cognito_user_pool.pool.id
 }
 
-# 3. App Client de Cognito (SummerAppClient)
+# ========================================================================
+# 3. APP CLIENT DE COGNITO (SummerAppClient)
+# ========================================================================
 resource "aws_cognito_user_pool_client" "client" {
   name         = "summer"
   user_pool_id = aws_cognito_user_pool.pool.id
@@ -176,10 +182,12 @@ resource "aws_cognito_identity_pool_roles_attachment" "identity_pool_roles" {
 # ========================================================================
 # 5. COGNITO SYNC TRIGGER (DISPARADOR PARA IDENTITY POOL)
 # ========================================================================
+
+# Permiso explicito de invocar la Lambda para el servicio de Cognito Sync
 resource "aws_lambda_permission" "allow_cognito_identity_pool" {
   statement_id  = "AllowCognitoIdentityPoolSync"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.summer_user_lambda.function_name
   principal     = "cognito-sync.amazonaws.com"
-  source_arn    = "${aws_cognito_identity_pool.identity_pool.arn}:*"
+  source_arn    = "arn:aws:cognito-sync:us-east-1:800445863816:identitypool/${aws_cognito_identity_pool.identity_pool.id}"
 }
