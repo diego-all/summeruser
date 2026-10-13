@@ -14,10 +14,10 @@ resource "aws_api_gateway_rest_api" "summer_s3_api" {
 # 2. AUTORIZADOR DE COGNITO
 # ========================================================================
 resource "aws_api_gateway_authorizer" "cognito_authorizer" {
-  name          = "Cognito"
-  type          = "COGNITO_USER_POOLS"
-  rest_api_id   = aws_api_gateway_rest_api.summer_s3_api.id
-  provider_arns = [aws_cognito_user_pool.pool.arn]
+  name            = "Cognito"
+  type            = "COGNITO_USER_POOLS"
+  rest_api_id     = aws_api_gateway_rest_api.summer_s3_api.id
+  provider_arns   = [aws_cognito_user_pool.pool.arn]
   identity_source = "method.request.header.Authorization"
 }
 
@@ -154,11 +154,11 @@ resource "aws_api_gateway_integration" "s3_put_integration" {
   http_method             = aws_api_gateway_method.put_object.http_method
   integration_http_method = "PUT"
   type                    = "AWS"
-  
+
   # Endpoint directo de S3 usando la región us-east-1
-  uri                     = "arn:aws:apigateway:us-east-1:s3:path/{bucket}/{key}"
-  credentials             = aws_iam_role.api_gateway_role.arn
-  passthrough_behavior    = "WHEN_NO_MATCH"
+  uri                  = "arn:aws:apigateway:us-east-1:s3:path/{bucket}/{key}"
+  credentials          = aws_iam_role.api_gateway_role.arn
+  passthrough_behavior = "WHEN_NO_MATCH"
 
   request_parameters = {
     "integration.request.path.bucket" = "method.request.path.folder"
