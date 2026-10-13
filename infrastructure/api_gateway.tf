@@ -5,6 +5,9 @@ resource "aws_api_gateway_rest_api" "summer_s3_api" {
   name        = "SummerS3"
   description = "API Gateway con integración directa a S3"
 
+  # CAMBIO: sin tipos binarios, las imágenes se corrompen al pasar por API Gateway
+  binary_media_types = ["image/*"]
+
   endpoint_configuration {
     types = ["REGIONAL"]
   }
@@ -122,9 +125,10 @@ resource "aws_api_gateway_integration_response" "object_options_integration_resp
   http_method = aws_api_gateway_method.object_options.http_method
   status_code = aws_api_gateway_method_response.object_options_200.status_code
 
+  # CAMBIO: equivalente a Acciones > Habilitar CORS sobre el método PUT (Allow-Methods: OPTIONS, PUT)
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+    "method.response.header.Access-Control-Allow-Methods" = "'OPTIONS,PUT'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
 }
@@ -172,6 +176,11 @@ resource "aws_api_gateway_method_response" "put_200" {
   resource_id = aws_api_gateway_resource.object.id
   http_method = aws_api_gateway_method.put_object.http_method
   status_code = "200"
+
+  # CAMBIO: cabecera CORS en la respuesta real del PUT (no solo en el OPTIONS)
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
 }
 
 # Respuesta de Integración
@@ -181,5 +190,53 @@ resource "aws_api_gateway_integration_response" "put_integration_response" {
   http_method = aws_api_gateway_method.put_object.http_method
   status_code = aws_api_gateway_method_response.put_200.status_code
 
+  # CAMBIO: valor de la cabecera CORS para el navegador (Next.js)
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
   depends_on = [aws_api_gateway_integration.s3_put_integration]
+}
+
+# ========================================================================
+# 6. DEPLOYMENT Y STAGE (NUEVO: sin esto la API no tiene URL invocable)
+# ========================================================================
+resource "aws_api_gateway_deployment" "summer" {
+  rest_api_id = aws_api_gateway_rest_api.summer_s3_api.id
+
+  # Fuerza un nuevo deployment cuando cambia cualquiera de estos recursos
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_rest_api.summer_s3_api.binary_media_types,
+      aws_api_gateway_resource.folder.id,
+      aws_api_gateway_resource.object.id,
+      aws_api_gateway_method.put_object.id,
+      aws_api_gateway_integration.s3_put_integration.id,
+      # CAMBIO: CORS del PUT (equivale a "Implementar API" en la consola)
+      aws_api_gateway_method_response.put_200.response_parameters,
+      aws_api_gateway_integration_response.put_integration_response.id,
+      aws_api_gateway_integration_response.put_integration_response.response_parameters,
+      # CAMBIO: CORS del OPTIONS en /{folder}/{object}
+      aws_api_gateway_method.object_options.id,
+      aws_api_gateway_integration.object_options_integration.id,
+      aws_api_gateway_method_response.object_options_200.response_parameters,
+      aws_api_gateway_integration_response.object_options_integration_response.id,
+      aws_api_gateway_integration_response.object_options_integration_response.response_parameters,
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_api_gateway_stage" "dev" {
+  rest_api_id   = aws_api_gateway_rest_api.summer_s3_api.id
+  deployment_id = aws_api_gateway_deployment.summer.id
+  stage_name    = "dev"
+}
+
+# URL base para Postman, Insomnia y Next.js
+output "invoke_url" {
+  value = aws_api_gateway_stage.dev.invoke_url
 }

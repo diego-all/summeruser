@@ -18,7 +18,7 @@ func SignUp(sig models.SignUp) error {
 
 	defer Db.Close()
 
-	sentencia := "INSERT INTO users (User_email, User_UUID, User_DateAdd) VALUES ('" + sig.UserEmail + "'.'" + sig.UserUUID + "','" + tools.FechaMySQL() + "')"
+	sentencia := "INSERT INTO users (User_email, User_UUID, User_DateAdd) VALUES ('" + sig.UserEmail + "','" + sig.UserUUID + "','" + tools.FechaMySQL() + "')"
 	fmt.Println(sentencia)
 
 	_, err = Db.Exec(sentencia)

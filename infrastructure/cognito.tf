@@ -82,7 +82,7 @@ resource "aws_cognito_user_pool_client" "client" {
   id_token_validity      = 1
 
   # Duración de la sesión de autenticación (3 minutos)
-  auth_session_validity  = 3
+  auth_session_validity = 3
 
   token_validity_units {
     refresh_token = "days"
@@ -101,7 +101,7 @@ resource "aws_cognito_user_pool_client" "client" {
   # Configuración de OAuth / Integration
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_scopes                 = ["openid", "email"]
+  allowed_oauth_scopes                 = ["openid", "email", "aws.cognito.signin.user.admin"] # Lección 62: se agrega el ámbito aws.cognito.signin.user.admin
   callback_urls                        = ["https://localhost:3000"]
   logout_urls                          = ["https://localhost:3000"]
   supported_identity_providers         = ["COGNITO"]

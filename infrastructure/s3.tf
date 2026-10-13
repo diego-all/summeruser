@@ -56,20 +56,47 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "summer_images_enc
 }
 
 # 6. Política del Bucket (Capítulo 60: lectura pública de objetos)
+# resource "aws_s3_bucket_policy" "summer_images_policy" {
+#   bucket     = aws_s3_bucket.summer_images.id
+#   depends_on = [aws_s3_bucket_public_access_block.summer_images_public_access] # Primero se abre el bloqueo público
+
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [{
+#       Effect    = "Allow"
+#       Principal = "*"
+#       Action    = ["s3:GetObject"] # Sin ListBucket: no se puede listar el contenido
+#       Resource  = ["${aws_s3_bucket.summer_images.arn}/*"]
+#     }]
+#   })
+# }
+
+
+# 6. Política del Bucket (Capítulo 60: lectura pública de objetos y listado del bucket)
 resource "aws_s3_bucket_policy" "summer_images_policy" {
   bucket     = aws_s3_bucket.summer_images.id
   depends_on = [aws_s3_bucket_public_access_block.summer_images_public_access] # Primero se abre el bloqueo público
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = "*"
-      Action    = ["s3:GetObject"] # Sin ListBucket: no se puede listar el contenido
-      Resource  = ["${aws_s3_bucket.summer_images.arn}/*"]
-    }]
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = "*"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.summer_images.arn,
+          "${aws_s3_bucket.summer_images.arn}/*"
+        ]
+      }
+    ]
   })
 }
+
+
 
 # Salida: nombre final del bucket (se usa como {folder} en la URL del API Gateway)
 output "bucket_name" {
