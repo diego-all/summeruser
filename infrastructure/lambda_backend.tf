@@ -3,9 +3,8 @@
 # ========================================================================
 
 locals {
-  backend_zip = "../../summer/function.zip" # AJUSTA: ruta del function.zip del backend (relativa a la carpeta infrastructure)
+  backend_zip = "../../e-commerce-serverless-aws-golang/function.zip" # AJUSTA: ruta del function.zip del backend (relativa a la carpeta infrastructure)
 }
-
 # 1. Rol de ejecución (equivale a "Crear un nuevo rol desde plantillas de políticas de AWS")
 resource "aws_iam_role" "summer_backend_role" {
   name = "summer-role-execution"
