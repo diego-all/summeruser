@@ -28,15 +28,17 @@ resource "aws_apigatewayv2_integration" "backend_lambda" {
 }
 
 # 3. Ruta: cualquier método sobre /summer apunta a la integración (en el curso es ANY /gambit)
-resource "aws_apigatewayv2_route" "backend_any" {
+# CAMBIO (lección 75): se elimina la ruta ANY /summer y se crea la ruta principal POST /summer/category
+# (en el curso es POST /gambit/category). Se le asocia el autorizador (sección 6) y la integración (sección 2).
+resource "aws_apigatewayv2_route" "backend_category_post" {
   api_id    = aws_apigatewayv2_api.backend_http_api.id
-  route_key = "ANY /summer"
+  route_key = "POST /summer/category"
   target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
 
-  # CAMBIO: para proteger la ruta con el autorizador JWT (sección 6), descomenta estas dos líneas.
-  # Hazlo solo cuando ya tengas el token de Cognito para probar; sin token la ruta responderá 401.
-  # authorization_type = "JWT"
-  # authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+  # CAMBIO: la ruta queda protegida con el autorizador JWT "summer_cognito" (el curso usa "gambit_cognito").
+  # Sin token de Cognito en el header Authorization la ruta responderá 401. No se configuran ámbitos.
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
 }
 
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
