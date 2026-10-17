@@ -59,11 +59,14 @@ resource "aws_lambda_function" "summer_backend_lambda" {
   # CAMBIO: ahora es el nombre del parámetro de Parameter Store (sección 4). La clave se llama igual porque
   # el código exige la variable "SecretName"; solo cambia el valor, y el código debe leerla con SSM GetParameter.
   # UrlPrefix: prefijo que el código le quita a request.RawPath con strings.Replace(..., -1).
-  # Como la etapa y la ruta se llaman "summer", la ruta llega como /summer/summer/category y queda /category
+  # Como la etapa y la ruta se llaman "summer", la ruta llega como /summer/summer/category.
+  # CAMBIO: el prefijo es "/summer/summer/" (con barra final, como "/gambit/gambit/" en el curso). El router hace
+  # path[0:4] y compara path == "category", así que el path resultante debe ser "category" SIN barra inicial.
+  # Con "/summer" quedaría "/category" y el router respondería 400 "Method Invalid"
   environment {
     variables = {
       SecretName = local.backend_param_name
-      UrlPrefix  = "/summer"
+      UrlPrefix  = "/summer/summer/"
     }
   }
 }

@@ -52,3 +52,11 @@ cómo funciona Cognito como Identity Provider.
 >Tu cuenta no tiene capa gratuita para RDS. En Free Tier aparecen solo 6 ofertas en uso (KMS, Glue, CloudWatch y Lambda), y todas son del tipo “siempre gratis”. Al buscar rds y aurora no hay ningún resultado. Si tu cuenta tuviera las 750 horas gratis de RDS, aparecerían aquí, y no hay créditos que las compensen
 
 
+
+### MySQL
+
+
+    mysql -h summer.c87semo4ses5.us-east-1.rds.amazonaws.com -u root -p summer \
+    -e "SHOW TABLES; SELECT User_UUID, User_Email, User_Status FROM users;"
+
+    passwd summer2026
