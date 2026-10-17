@@ -40,7 +40,11 @@ cómo funciona Cognito como Identity Provider.
     terraform apply tfplan
     terraform plan -replace=aws_db_instance.summer_rds -out=tfplan  # Reemplazar la instancia por 8.4 mysql
 
+    terraform state show aws_db_instance.summer_rds | grep -E "password|address"
+
     rm tfplan
+
+UUID QUEMADO
 
     terraform plan -out=tfplan \
     -var 'admin_user_uuid=44283408-2071-701d-9b7a-13c55283683f' \
@@ -49,13 +53,13 @@ cómo funciona Cognito como Identity Provider.
     terraform destroy -target=aws_db_instance.summer_rds
 
 
+>Subir la Lambda. Tu lambda_backend.tf ya tiene source_code_hash = filebase64sha256(local.backend_zip). Si recompilas y vuelves a crear el zip, Terraform detecta el cambio y actualiza la Lambda sin tocar nada más. En e-commerce-serverless-aws-golang:
 
+
+### AWS
 
     aws configure list-profiles
     sts get-caller-identity --profile bold-free-tier
-
-
-    terraform destroy -target=aws_db_instance.summer_rds
 
 
 >Tu cuenta no tiene capa gratuita para RDS. En Free Tier aparecen solo 6 ofertas en uso (KMS, Glue, CloudWatch y Lambda), y todas son del tipo “siempre gratis”. Al buscar rds y aurora no hay ningún resultado. Si tu cuenta tuviera las 750 horas gratis de RDS, aparecerían aquí, y no hay créditos que las compensen
@@ -75,3 +79,8 @@ cómo funciona Cognito como Identity Provider.
 
 se esa enviando el id_tokenn y no el acces token.
 
+
+
+IDENTIFICAR COMO FUNCIONA
+
+YA SOY HACKER, NO ES SINO ENUMERAR.

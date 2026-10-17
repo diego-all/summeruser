@@ -41,6 +41,46 @@ resource "aws_apigatewayv2_route" "backend_category_post" {
   authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
 }
 
+# CAMBIO (lección 79): ruta PUT /summer/category/{id} (en el curso es PUT /gambit/category/{id}).
+# Igual que en la consola: se coloca la ruta completa SIN la etapa (la etapa "summer" ya la agrega el stage).
+# {id} es un parámetro de ruta: API Gateway lo acepta como parte de la URL (ej. /summer/category/5) y lo entrega
+# a la Lambda en request.PathParameters["id"]. Sin las llaves, la ruta no coincidiría y API Gateway respondería 404.
+# Usa la misma integración (Lambda summer) y el mismo autorizador JWT summer_cognito que el POST.
+resource "aws_apigatewayv2_route" "backend_category_put" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "PUT /summer/category/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 80): ruta DELETE /summer/category/{id} (en el curso es DELETE /gambit/category/{id}).
+# Misma mecánica que el PUT: ruta completa sin la etapa, {id} como parámetro de ruta (llega a la Lambda en
+# request.PathParameters["id"]), la misma integración (Lambda summer) y el mismo autorizador JWT summer_cognito.
+# El body no se usa: el backend solo necesita el id de la URL y el usuario del token (debe ser admin).
+resource "aws_apigatewayv2_route" "backend_category_delete" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "DELETE /summer/category/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 81): ruta GET /summer/category (en el curso es GET /gambit/category).
+# Es una de las dos únicas rutas SIN autorizador (la otra será GET /summer/product): el listado de categorías es público,
+# y en handlers.go validoAuthorization ya deja pasar path "category" + GET sin exigir token.
+# Por eso no se configura authorization_type ni authorizer_id (por defecto "NONE"): en la consola equivale a no tocar
+# la pestaña de autorización. Solo se asocia la integración (la misma Lambda summer).
+# Los filtros del GET (categId, slug) llegan como query string, no hacen falta rutas adicionales.
+resource "aws_apigatewayv2_route" "backend_category_get" {
+  api_id             = aws_apigatewayv2_api.backend_http_api.id
+  route_key          = "GET /summer/category"
+  target             = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+  authorization_type = "NONE"
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)
