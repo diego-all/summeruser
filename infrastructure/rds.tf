@@ -27,8 +27,13 @@ resource "aws_db_instance" "summer_rds" {
   max_allocated_storage = 20 # Evita auto-scaling de almacenamiento
   storage_type          = "gp2"
   engine                = "mysql"
-  engine_version        = "8.0"
-  instance_class        = "db.t3.micro"
+  # CAMBIO: MySQL 8.0 ya salió del soporte estándar de RDS y AWS cobra "Extended Support" por vCPU-hora
+  # (era ~90% del costo en la factura). Con 8.4 (LTS) ese cargo desaparece.
+  engine_version              = "8.4"
+  instance_class              = "db.t3.micro"
+  allow_major_version_upgrade = true
+  apply_immediately           = true
+
 
   # Nombre de la BD corregido según el CDK original
   db_name  = "summer"

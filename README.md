@@ -38,6 +38,15 @@ cómo funciona Cognito como Identity Provider.
     terraform validate
     terraform plan -out=tfplan
     terraform apply tfplan
+    terraform plan -replace=aws_db_instance.summer_rds -out=tfplan  # Reemplazar la instancia por 8.4 mysql
+
+    rm tfplan
+
+    terraform plan -out=tfplan \
+    -var 'admin_user_uuid=44283408-2071-701d-9b7a-13c55283683f' \
+    -var 'admin_user_email=dposadallano@gmail.com'
+
+    terraform destroy -target=aws_db_instance.summer_rds
 
 
 
@@ -60,3 +69,9 @@ cómo funciona Cognito como Identity Provider.
     -e "SHOW TABLES; SELECT User_UUID, User_Email, User_Status FROM users;"
 
     passwd summer2026
+
+
+### JWT
+
+se esa enviando el id_tokenn y no el acces token.
+
