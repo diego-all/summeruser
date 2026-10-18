@@ -81,6 +81,29 @@ se esa enviando el id_tokenn y no el acces token.
 
 
 
+### Savings
+
+
+# Apagar al terminar de estudiar
+aws rds stop-db-instance --db-instance-identifier summer --profile bold-free-tier --region us-east-1
+
+# Encender cuando vuelvas (tarda unos minutos)
+aws rds start-db-instance --db-instance-identifier summer --profile bold-free-tier --region us-east-1
+
+terraform destroy -target=aws_db_instance.summer_rds
+
+3. Cambiar a db.t4g.micro
+
+Es la versión Graviton (ARM) de la misma clase y suele costar algo menos que la t3.micro. MySQL 8.4 la soporta. En rds.tf:
+
+hcl
+instance_class = "db.t4g.micro"
+
+
+
 IDENTIFICAR COMO FUNCIONA
 
 YA SOY HACKER, NO ES SINO ENUMERAR.
+
+
+

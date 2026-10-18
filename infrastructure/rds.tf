@@ -105,3 +105,24 @@ resource "terraform_data" "rds_init_admin" {
     EOT
   }
 }
+
+
+
+# Datos de prueba (categorías y productos). Idempotente: usa ON DUPLICATE KEY UPDATE.
+# Se re-ejecuta si la RDS se recrea o si cambia bd/seed.sql
+resource "terraform_data" "rds_seed_data" {
+  triggers_replace = [
+    terraform_data.rds_init_schema.id,
+    filesha256("${path.module}/../bd/seed.sql"),
+  ]
+
+  provisioner "local-exec" {
+    environment = {
+      MYSQL_PWD = aws_db_instance.summer_rds.password
+    }
+
+    command = <<-EOT
+      mysql --default-character-set=utf8mb4 -h ${aws_db_instance.summer_rds.address} -u ${aws_db_instance.summer_rds.username} ${aws_db_instance.summer_rds.db_name} < ${path.module}/../bd/seed.sql
+    EOT
+  }
+}

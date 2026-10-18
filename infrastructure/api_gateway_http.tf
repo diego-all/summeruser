@@ -69,7 +69,7 @@ resource "aws_apigatewayv2_route" "backend_category_delete" {
 }
 
 # CAMBIO (lección 81): ruta GET /summer/category (en el curso es GET /gambit/category).
-# Es una de las dos únicas rutas SIN autorizador (la otra será GET /summer/product): el listado de categorías es público,
+# Es una de las dos únicas rutas SIN autorizador (la otra es GET /summer/product): el listado de categorías es público,
 # y en handlers.go validoAuthorization ya deja pasar path "category" + GET sin exigir token.
 # Por eso no se configura authorization_type ni authorizer_id (por defecto "NONE"): en la consola equivale a no tocar
 # la pestaña de autorización. Solo se asocia la integración (la misma Lambda summer).
@@ -121,6 +121,20 @@ resource "aws_apigatewayv2_route" "backend_product_delete" {
 
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 94): ruta GET /summer/product (en el curso es GET /gambit/product).
+# Es el SELECT de productos y la segunda (y última) ruta SIN autorizador, junto con GET /summer/category: el catálogo es público,
+# y en handlers.go validoAuthorization ya deja pasar path "product" + GET sin exigir token.
+# Por eso no se configura authorizer_id (authorization_type = "NONE"): en la consola equivale a no tocar la pestaña de autorización.
+# Solo se asocia la integración (la misma Lambda summer). Ruta completa SIN la etapa y sin {id}: los filtros
+# (prodId, search, categId, slug, slugCateg) y la paginación/orden (page, pageSize, orderField, orderType) llegan como query string.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como path "product" y el router entra por path[0:4] == "prod".
+resource "aws_apigatewayv2_route" "backend_product_get" {
+  api_id             = aws_apigatewayv2_api.backend_http_api.id
+  route_key          = "GET /summer/product"
+  target             = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+  authorization_type = "NONE"
 }
 
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
