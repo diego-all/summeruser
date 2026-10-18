@@ -81,6 +81,48 @@ resource "aws_apigatewayv2_route" "backend_category_get" {
   authorization_type = "NONE"
 }
 
+# CAMBIO (lección 89): dominio de productos. Ruta POST /summer/product (en el curso es POST /gambit/product).
+# Es el INSERT de productos: lleva autorizador JWT "summer_cognito" porque solo un admin puede crear productos
+# (el router llama a bd.UserIsAdmin con el usuario del token). Ruta completa SIN la etapa, y misma integración
+# (Lambda summer) que las rutas de category. No lleva {id}: el producto se crea con los datos del body.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como path "product" y el router entra por path[0:4] == "prod".
+resource "aws_apigatewayv2_route" "backend_product_post" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "POST /summer/product"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 90): ruta PUT /summer/product/{id} (en el curso es PUT /gambit/product/{id}).
+# Es el UPDATE de productos. Igual que PUT /summer/category/{id}: ruta completa SIN la etapa, {id} como parámetro de ruta
+# (llega a la Lambda en request.PathParameters["id"] y handlers.go lo convierte a int), la misma integración
+# (Lambda summer) y el mismo autorizador JWT summer_cognito, porque solo un admin puede modificar productos.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "product/5" y el router entra por path[0:4] == "prod".
+resource "aws_apigatewayv2_route" "backend_product_put" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "PUT /summer/product/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 93): ruta DELETE /summer/product/{id} (en el curso es DELETE /gambit/product/{id}).
+# Es el DELETE de productos. Igual que DELETE /summer/category/{id}: ruta completa SIN la etapa, {id} como parámetro de ruta
+# (llega a la Lambda en request.PathParameters["id"]), la misma integración (Lambda summer) y el mismo autorizador JWT
+# summer_cognito, porque solo un admin puede borrar productos. No usa body: solo el id de la URL y el usuario del token.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "product/5" y el router entra por path[0:4] == "prod".
+resource "aws_apigatewayv2_route" "backend_product_delete" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "DELETE /summer/product/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)
