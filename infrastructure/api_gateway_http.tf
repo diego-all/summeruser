@@ -211,6 +211,41 @@ resource "aws_apigatewayv2_route" "backend_users_get" {
   authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
 }
 
+# CAMBIO (lección 107): dominio de direcciones. Ruta POST /summer/address (en el curso es POST /gambit/address).
+# Es el INSERT de una dirección de envío del usuario. Ruta completa SIN la etapa y sin {id}: la dirección se crea con los datos
+# del body (addAddress, addCity, addState, addPostalCode, addPhone, addTitle y addName; routers.InsertAddress exige que casi
+# todos vengan completos) y se asocia al usuario del token (claim "username"), no a un id de la URL.
+# Lleva el mismo autorizador JWT summer_cognito y la misma integración (Lambda summer). NO exige ser admin: cualquier usuario
+# autenticado puede registrar SUS propias direcciones (bd.InsertAddress guarda el UUID del token en Add_UserId).
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como path "address" y el router entra por path[0:4] == "addr"
+# (handlers.go > ProcesoAddress, case "POST" > routers.InsertAddress > bd.InsertAddress).
+resource "aws_apigatewayv2_route" "backend_address_post" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "POST /summer/address"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 116): ruta PUT /summer/address/{id} (en el curso es PUT /gambit/address/{id}).
+# Es el UPDATE de una dirección. Igual que PUT /summer/product/{id}: ruta completa SIN la etapa, {id} como parámetro de ruta
+# (llega a la Lambda en request.PathParameters["id"] y handlers.go lo convierte a int; es el Add_Id de la dirección), la misma
+# integración (Lambda summer) y el mismo autorizador JWT summer_cognito. NO exige ser admin: routers.UpdateAddress llama a
+# bd.AddressExists(usuario del token, id) y solo permite modificar direcciones que pertenezcan al usuario del token.
+# El body lleva SOLO los campos a cambiar (addAddress, addCity, addState, addPostalCode, addPhone, addTitle, addName);
+# los que no se envían quedan igual, por eso el docente prueba con un solo campo, por ejemplo {"addAddress": "Av. Independencia 2335 p2"}.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "address/5" y el router entra por path[0:4] == "addr"
+# (handlers.go > ProcesoAddress, case "PUT" > routers.UpdateAddress > bd.UpdateAddress).
+resource "aws_apigatewayv2_route" "backend_address_put" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "PUT /summer/address/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)

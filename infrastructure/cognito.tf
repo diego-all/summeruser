@@ -74,7 +74,9 @@ resource "aws_cognito_user_pool_client" "client" {
   user_pool_id = aws_cognito_user_pool.pool.id
 
   generate_secret     = false
-  explicit_auth_flows = ["ALLOW_USER_SRP_AUTH", "ALLOW_CUSTOM_AUTH"]
+  explicit_auth_flows = ["ALLOW_USER_SRP_AUTH", "ALLOW_CUSTOM_AUTH", "ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  # explicit_auth_flows = ["ALLOW_USER_SRP_AUTH", "ALLOW_CUSTOM_AUTH"]
+
 
   # Duración de tokens
   refresh_token_validity = 30
@@ -190,4 +192,48 @@ resource "aws_lambda_permission" "allow_cognito_identity_pool" {
   function_name = aws_lambda_function.summer_user_lambda.function_name
   principal     = "cognito-sync.amazonaws.com"
   source_arn    = "arn:aws:cognito-sync:us-east-1:800445863816:identitypool/${aws_cognito_identity_pool.identity_pool.id}"
+}
+
+# ========================================================================
+# 6. USUARIO ADMINISTRADOR EN COGNITO
+# ========================================================================
+# CAMBIO: el admin se crea con Terraform (equivale a "Create user" en la consola con contraseña permanente).
+# - message_action = "SUPPRESS": no envía correo de invitación.
+# - password: contraseña permanente, el usuario queda CONFIRMED y puede entrar directo por el login (hosted UI).
+# - Un usuario creado por admin NO dispara el trigger PostConfirmation, por eso su fila en la tabla users
+#   la inserta rds_init_admin (rds.tf) usando el "sub" que devuelve este recurso.
+# - Con username_attributes = ["email"], el username de entrada es el correo y el claim "username" del
+#   access token es el sub (UUID) que genera Cognito.
+resource "aws_cognito_user" "admin" {
+  count = var.admin_user_email != "" ? 1 : 0
+
+  user_pool_id   = aws_cognito_user_pool.pool.id
+  username       = var.admin_user_email
+  password       = var.admin_user_password
+  message_action = "SUPPRESS"
+
+  attributes = {
+    email          = var.admin_user_email
+    email_verified = "true"
+  }
+}
+
+# ========================================================================
+# 7. OUTPUTS ÚTILES (pool, client y URL de login)
+# ========================================================================
+# CAMBIO: cada vez que se recrea el pool cambia el client_id; con esto la URL de login siempre sale correcta.
+output "cognito_user_pool_id" {
+  value = aws_cognito_user_pool.pool.id
+}
+
+output "cognito_client_id" {
+  value = aws_cognito_user_pool_client.client.id
+}
+
+output "cognito_login_url" {
+  value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.us-east-1.amazoncognito.com/login?client_id=${aws_cognito_user_pool_client.client.id}&response_type=token&scope=aws.cognito.signin.user.admin+email+openid&redirect_uri=https://localhost:3000"
+}
+
+output "admin_user_sub" {
+  value = var.admin_user_email != "" ? aws_cognito_user.admin[0].sub : null
 }

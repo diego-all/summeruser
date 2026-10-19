@@ -83,15 +83,19 @@ resource "terraform_data" "rds_init_schema" {
   }
 }
 
-# Usuario administrador (User_Status = 0). Solo se crea si defines admin_user_uuid en terraform.tfvars.
+# Usuario administrador (User_Status = 0). Solo se crea si defines admin_user_email en terraform.tfvars.
 # UserIsAdmin del backend busca este registro; sin él el POST responde "User is not Admin".
-# El UUID es el claim "username" del access token (jwt.io). ON DUPLICATE KEY lo deja como admin si ya existía.
+# CAMBIO: antes el UUID se copiaba a mano en terraform.tfvars (admin_user_uuid), pero Cognito genera un "sub"
+# aleatorio cada vez que se crea un usuario/pool nuevo, así que el UUID quedaba desfasado tras cada destroy/apply.
+# Ahora el usuario se crea en Cognito con Terraform (aws_cognito_user.admin, ver cognito.tf) y su "sub" real
+# (aws_cognito_user.admin[0].sub) es el que se inserta aquí. Siempre coinciden, sin pasos manuales.
+# ON DUPLICATE KEY: si ya existía una fila con ese email (UNIQUE) de un pool anterior, se actualiza su UUID y se deja como admin.
 resource "terraform_data" "rds_init_admin" {
-  count = var.admin_user_uuid != "" ? 1 : 0
+  count = var.admin_user_email != "" ? 1 : 0
 
   triggers_replace = [
     terraform_data.rds_init_schema.id,
-    var.admin_user_uuid,
+    aws_cognito_user.admin[0].sub,
     var.admin_user_email,
   ]
 
@@ -101,12 +105,10 @@ resource "terraform_data" "rds_init_admin" {
     }
 
     command = <<-EOT
-      mysql -h ${aws_db_instance.summer_rds.address} -u ${aws_db_instance.summer_rds.username} ${aws_db_instance.summer_rds.db_name} -e "INSERT INTO users (User_UUID, User_Email, User_Status, User_DateAdd) VALUES ('${var.admin_user_uuid}', '${var.admin_user_email}', 0, NOW()) ON DUPLICATE KEY UPDATE User_Status = 0;"
+      mysql -h ${aws_db_instance.summer_rds.address} -u ${aws_db_instance.summer_rds.username} ${aws_db_instance.summer_rds.db_name} -e "INSERT INTO users (User_UUID, User_Email, User_Status, User_DateAdd) VALUES ('${aws_cognito_user.admin[0].sub}', '${var.admin_user_email}', 0, NOW()) AS new ON DUPLICATE KEY UPDATE User_UUID = new.User_UUID, User_Status = 0;"
     EOT
   }
 }
-
-
 
 # Datos de prueba (categorías y productos). Idempotente: usa ON DUPLICATE KEY UPDATE.
 # Se re-ejecuta si la RDS se recrea o si cambia bd/seed.sql
