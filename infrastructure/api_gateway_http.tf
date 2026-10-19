@@ -137,6 +137,25 @@ resource "aws_apigatewayv2_route" "backend_product_get" {
   authorization_type = "NONE"
 }
 
+# CAMBIO (lección 101): dominio de stock. Ruta PUT /summer/stock/{id} (en el curso es PUT /gambit/stock/{id}).
+# Es el UPDATE del stock de un producto. Es raro que use PUT para sumar/restar unidades, pero así lo define el curso.
+# Igual que PUT /summer/product/{id}: ruta completa SIN la etapa, {id} como parámetro de ruta (llega a la Lambda en
+# request.PathParameters["id"] y handlers.go lo convierte a int; es el ID del producto), la misma integración
+# (Lambda summer) y el mismo autorizador JWT summer_cognito, porque solo un admin puede modificar el stock
+# (routers.UpdateStock llama a bd.UserIsAdmin con el usuario del token).
+# El body lleva el stock a SUMAR al actual (negativo para restar), por ejemplo {"prodStock": 10}: bd.UpdateStock ejecuta
+# "Prod_Stock = Prod_Stock + valor" y rechaza un 0.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "stock/5" y el router entra por path[0:4] == "stoc"
+# (handlers.go > ProcesoStock).
+resource "aws_apigatewayv2_route" "backend_stock_put" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "PUT /summer/stock/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)
