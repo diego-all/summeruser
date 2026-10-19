@@ -246,6 +246,41 @@ resource "aws_apigatewayv2_route" "backend_address_put" {
   authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
 }
 
+# CAMBIO (lección 117): ruta DELETE /summer/address/{id} (en el curso es DELETE /gambit/address/{id}).
+# Es el DELETE de una dirección. Igual que DELETE /summer/product/{id}: ruta completa SIN la etapa, {id} como parámetro de ruta
+# (llega a la Lambda en request.PathParameters["id"] y handlers.go lo convierte a int; es el Add_Id de la dirección), la misma
+# integración (Lambda summer) y el mismo autorizador JWT summer_cognito. NO exige ser admin: el handler llama a
+# routers.DeleteAddress(usuario del token, id), así que cada usuario solo debería poder borrar SUS propias direcciones.
+# No usa body: solo el id de la URL y el usuario del token (claim "username").
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "address/5" y el router entra por path[0:4] == "addr"
+# (handlers.go > ProcesoAddress, case "DELETE" > routers.DeleteAddress).
+resource "aws_apigatewayv2_route" "backend_address_delete" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "DELETE /summer/address/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 118): ruta GET /summer/address (en el curso es GET /gambit/address).
+# Es el SELECT de direcciones: devuelve las direcciones del usuario del token (routers.SelectAddress(user) > bd.SelectAddress).
+# Misma ruta "address" que el POST pero con otro verbo: en API Gateway HTTP cada verbo es una ruta distinta, por eso es un recurso
+# aparte. Ruta completa SIN la etapa y sin {id}: el handler solo recibe el usuario (claim "username" del token), así que cada usuario
+# solo ve SUS propias direcciones y no hay que pasar nada por la URL ni por el body.
+# A diferencia de GET category/product, NO es pública: lleva el mismo autorizador JWT summer_cognito (sin token respondería 401,
+# y handlers.go > validoAuthorization exige el header Authorization para path "address"). No exige ser admin.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como path "address" y el router entra por path[0:4] == "addr"
+# (handlers.go > ProcesoAddress, case "GET" > routers.SelectAddress).
+resource "aws_apigatewayv2_route" "backend_address_get" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "GET /summer/address"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)
