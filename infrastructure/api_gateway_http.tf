@@ -156,6 +156,25 @@ resource "aws_apigatewayv2_route" "backend_stock_put" {
   authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
 }
 
+# CAMBIO (lección 104): dominio de usuarios. Ruta PUT /summer/user/me (en el curso es PUT /gambit/user/me).
+# Es el UPDATE de los datos del usuario (nombre y apellido). Ojo: el recurso se llama "user" (singular), igual que en
+# la consola del curso y que el case "user" de handlers.go (path[0:4] == "user"); con "users" el router no entraría.
+# NO lleva {id}: "me" es un segmento fijo, el usuario se identifica con el UUID del token (claim "username"), no con la URL.
+# Ruta completa SIN la etapa, la misma integración (Lambda summer) y el mismo autorizador JWT summer_cognito
+# (en la consola: Authorization > Asociar autorizadores a rutas > PUT /gambit/user/me > gambit_cognito).
+# A diferencia de category/product/stock, NO exige ser admin: cualquier usuario autenticado puede actualizar SU propio perfil.
+# El body lleva userFirstName y/o userLastName, por ejemplo {"userFirstName": "Diego", "userLastName": "Posada"}.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "user/me" y handlers.go > ProcesoUsers
+# la atiende cuando path == "user/me" y method == "PUT" (routers.UpdateUser).
+resource "aws_apigatewayv2_route" "backend_user_me_put" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "PUT /summer/user/me"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)
