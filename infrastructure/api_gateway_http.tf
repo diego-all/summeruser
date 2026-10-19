@@ -175,6 +175,42 @@ resource "aws_apigatewayv2_route" "backend_user_me_put" {
   authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
 }
 
+# CAMBIO (lección 105): ruta GET /summer/user/me (en el curso es GET /gambit/user/me).
+# Es el SELECT del usuario: devuelve los datos del perfil del usuario del token (UUID, email, nombre, apellido, estado y fechas).
+# Misma ruta "user/me" que el PUT pero con otro verbo: en API Gateway HTTP cada verbo es una ruta distinta, por eso es un
+# recurso aparte (en la consola aparece como un segundo método bajo /user/me). Ruta completa SIN la etapa y sin {id}.
+# Lleva el mismo autorizador JWT summer_cognito (NO es pública, a diferencia de GET category/product): sin token respondería 401,
+# y el backend usa el UUID del token (claim "username") para buscar al usuario, así que cada usuario solo ve SU propio perfil.
+# No exige ser admin ni usa body. Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "user/me" y
+# handlers.go > ProcesoUsers la atiende cuando path == "user/me" y method == "GET" (routers.SelectUser > bd.SelectUser).
+resource "aws_apigatewayv2_route" "backend_user_me_get" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "GET /summer/user/me"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
+# CAMBIO (lección 106): ruta GET /summer/users (en el curso es GET /gambit/users).
+# Es el listado de usuarios paginado: devuelve {"totalItems": N, "data": [...]} con 10 usuarios por página.
+# Ojo con el plural: aquí el recurso es "users" (plural), distinto de "user/me" (singular) de las dos rutas anteriores. Son rutas
+# diferentes, y las dos entran por el mismo case "user" de handlers.go (path[0:4] == "user"); ProcesoUsers las separa
+# comparando path == "user/me" o path == "users". Con "user" en singular esta ruta no coincidiría y API Gateway respondería 404.
+# NO lleva {id} ni body: la página llega como query string (?page=1) y el usuario que consulta se identifica con el UUID del token.
+# Lleva el mismo autorizador JWT summer_cognito (NO es pública). Ruta completa SIN la etapa y misma integración (Lambda summer).
+# En el curso solo un admin puede listar a todos los usuarios (el router llama a bd.UserIsAdmin con el usuario del token).
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como "users" y handlers.go > ProcesoUsers la atiende cuando
+# path == "users" y method == "GET" (routers.SelectUsers > bd.SelectUsers).
+resource "aws_apigatewayv2_route" "backend_users_get" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "GET /summer/users"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)
