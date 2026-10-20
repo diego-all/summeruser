@@ -281,6 +281,22 @@ resource "aws_apigatewayv2_route" "backend_address_get" {
   authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
 }
 
+# CAMBIO (dominio de órdenes): ruta POST /summer/order (en el curso es POST /gambit/order).
+# Es el INSERT de una orden de compra. Ruta completa SIN la etapa y sin {id}: la orden se crea con los datos del body y se asocia
+# al usuario del token (claim "username"), no a un id de la URL.
+# Lleva el mismo autorizador JWT summer_cognito y la misma integración (Lambda summer): NO es pública (handlers.go >
+# validoAuthorization exige el header Authorization para path "order"), así que sin token respondería 401.
+# Con UrlPrefix "/summer/summer/" la ruta llega a la Lambda como path "order" y el router entra por path[0:4] == "orde"
+# (handlers.go > ProcesoOrder, case "POST" > routers.InsertOrder > bd.InsertOrder).
+resource "aws_apigatewayv2_route" "backend_order_post" {
+  api_id    = aws_apigatewayv2_api.backend_http_api.id
+  route_key = "POST /summer/order"
+  target    = "integrations/${aws_apigatewayv2_integration.backend_lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.backend_cognito.id
+}
+
 # 4. Etapa (sin $default). Con auto_deploy, cada cambio se publica solo
 # CAMBIO: la etapa ahora se llama "summer" (en el curso es "gambit") en lugar de "dev".
 # La implementación automática queda habilitada (por ahora sirve ya que no estamos en producción)
